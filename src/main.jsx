@@ -1,6 +1,17 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import './styles.css';
+
+// Simulated execution-tracking stages. This is a client-side demo only:
+// it mirrors the "dispatched -> accepted -> in progress -> done" lifecycle of a
+// real council, but connects to no bridge, no automation, and no real agents.
+const EXEC_STAGES = [
+  { label: 'Queued', progress: 0 },
+  { label: 'Dispatched', progress: 15 },
+  { label: 'Accepted', progress: 35 },
+  { label: 'In progress', progress: 70 },
+  { label: 'Done (simulated)', progress: 100 },
+];
 
 const defaultPrompt = `A mid-sized hardware brand is considering launching a new AI-enabled product line in North America within 90 days. Should the company proceed? Evaluate market opportunity, product positioning, budget risk, source evidence, organizational memory, and execution tasks.`;
 
@@ -114,18 +125,43 @@ function App() {
   const [session, setSession] = useState(() => generateCouncil(defaultPrompt));
   const [stage, setStage] = useState('ready');
   const [approved, setApproved] = useState(false);
+  const [execStep, setExecStep] = useState(0);
+  const timers = useRef([]);
 
   const costNote = useMemo(() => ({ price: '2 USDT', mode: 'Pay per council session', boundary: 'Users pay for the outcome; provider controls model cost under the hood.' }), []);
+
+  function clearTimers() {
+    timers.current.forEach(t => window.clearTimeout(t));
+    timers.current = [];
+  }
 
   function runCouncil() {
     setStage('running');
     setApproved(false);
+    setExecStep(0);
+    clearTimers();
     window.setTimeout(() => {
       setSession(generateCouncil(topic));
       setStage('done');
       document.getElementById('results')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 500);
   }
+
+  // Approval gate: tasks only advance through the execution lifecycle AFTER the
+  // chairman applies the approval seal. Before approval, dispatch stays blocked.
+  function approve() {
+    setApproved(true);
+    clearTimers();
+    setExecStep(1);
+    for (let i = 2; i < EXEC_STAGES.length; i += 1) {
+      const step = i;
+      timers.current.push(window.setTimeout(() => setExecStep(step), (i - 1) * 900));
+    }
+  }
+
+  useEffect(() => clearTimers, []);
+
+  const execStage = EXEC_STAGES[Math.min(execStep, EXEC_STAGES.length - 1)];
 
   return <main>
     <section className="hero">
@@ -191,24 +227,50 @@ function App() {
       </div>
       <blockquote>{session.decision}</blockquote>
       <div className="actions approvalActions">
-        <button className="approveBtn" onClick={() => setApproved(true)}>👑 Board approval: APPROVED</button>
+        <button className="approveBtn" onClick={approve} disabled={approved}>👑 Board approval: APPROVE & DISPATCH</button>
         {approved && <span className="seal">Chairman seal · APPROVED</span>}
+        {!approved && <span>Execution stays blocked until the chairman applies the seal.</span>}
       </div>
     </section>
 
     <section className="panel">
       <div className="panelHead">
-        <h2>Executable task list</h2>
-        <p>Tasks are editable in the full product; this demo shows approval-gated dispatch targets.</p>
+        <h2>Executable task list {approved ? '· dispatched' : '· awaiting approval'}</h2>
+        <p>{approved
+          ? `Approval-gated dispatch is live. Execution status below is a simulated demo lifecycle (no real bridge) — current stage: ${execStage.label} (${execStage.progress}%).`
+          : 'Dispatch is locked until the chairman applies the approval seal above. No task leaves the boardroom without board approval.'}</p>
       </div>
-      <div className="table">
+      <div className={approved ? 'table' : 'table locked'}>
         {session.tasks.map((t, i) => <div className="row" key={i}>
           <span className="num">{String(i + 1).padStart(2, '0')}</span>
           <span className="owner">{t.owner}</span>
           <span className="priority">{t.priority}</span>
-          <span className="target">→ {t.target}</span>
-          <span className="task"><b>{t.task}</b><em>{t.acceptance}</em></span>
+          <span className={approved ? 'target' : 'target locked'}>{approved ? `→ ${t.target}` : `🔒 awaiting approval · ${t.target}`}</span>
+          <span className="task">
+            <b>{t.task}</b>
+            <em>{t.acceptance}</em>
+            <span className={approved ? 'execStatus live' : 'execStatus'}>
+              {approved ? <>
+                <span className="execBar"><span style={{ width: `${execStage.progress}%` }} /></span>
+                <span className="execLabel">{execStage.label} · {execStage.progress}%</span>
+              </> : <span className="execLabel">🔒 Blocked — pending board approval</span>}
+            </span>
+          </span>
         </div>)}
+      </div>
+    </section>
+
+    <section className="panel">
+      <div className="panelHead">
+        <h2>Meeting record · organizational memory</h2>
+        <p>Every session is archived as a reusable decision record — the Obsidian-style memory the council reads back next time.</p>
+      </div>
+      <div className="record">
+        <div><b>Question</b><span>{topic.slice(0, 160)}{topic.length > 160 ? '…' : ''}</span></div>
+        <div><b>Rounds</b><span>Round 1 independent perspectives · Round 2 cross-review and dissent</span></div>
+        <div><b>Chair decision</b><span>{session.decision.slice(0, 150)}…</span></div>
+        <div><b>Approval</b><span>{approved ? 'Chairman seal applied · execution dispatched' : 'Not yet approved · execution blocked'}</span></div>
+        <div><b>Dispatched tasks</b><span>{session.tasks.length} tasks with owners and acceptance criteria</span></div>
       </div>
     </section>
 
