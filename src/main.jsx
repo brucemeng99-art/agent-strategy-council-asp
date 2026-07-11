@@ -88,6 +88,27 @@ function pickTopicSignals(text) {
   };
 }
 
+function buildInitialRounds(session) {
+  return [
+    { n: 1, title: 'Round 1 · independent perspectives', note: 'Each agent analyzes the same question from a different organizational seat.', entries: session.round1 },
+    { n: 2, title: 'Round 2 · cross-review and disagreement', note: 'The council must name agreement, disagreement, and a correction.', entries: session.debate },
+  ];
+}
+
+function generateAdditionalRound(topic, roundNo, chairmanNote) {
+  const s = pickTopicSignals(topic);
+  const note = chairmanNote?.trim() || 'The chairman asks the council to continue, challenge assumptions, and sharpen the final decision.';
+  return {
+    chair: `Chair instruction received: “${note}” I will force this round to respond directly to the chairman, separate disagreement from consensus, and move toward a sharper decision gate.`,
+    strategy: `Responding to the chairman: the strategic question is no longer only whether to proceed, but what proof must be produced before expansion. For this ${s.speed}, I would require one clear segment, one channel test, and one stop-loss rule.`,
+    product: `Responding to the chairman: I would narrow the offer further. The next round should turn the idea into a demo promise, a buyer workflow, and one acceptance test that proves the ${s.product} is understandable.`,
+    finance: `Responding to the chairman: I would not approve open-ended spending. The next gate should define maximum validation budget, pilot price, and the metric that proves payback is plausible.`,
+    risk: `Responding to the chairman: the strongest correction is to keep public claims below proven capability. Any execution, integration, or data handling should remain approval-gated until reviewed.`,
+    memory: `Responding to the chairman: this round should be archived as a decision record, not just a discussion. The reusable rule is: chairman question → dissent → revised decision standard → task owner → review date.`,
+    sources: `Responding to the chairman: the council should mark which points are facts, which are source-backed claims, and which are assumptions. Unsupported assumptions should become test tasks, not marketing copy.`,
+  };
+}
+
 function generateCouncil(topic) {
   const s = pickTopicSignals(topic);
   const round1 = {
@@ -123,6 +144,8 @@ function generateCouncil(topic) {
 function App() {
   const [topic, setTopic] = useState(defaultPrompt);
   const [session, setSession] = useState(() => generateCouncil(defaultPrompt));
+  const [rounds, setRounds] = useState(() => buildInitialRounds(generateCouncil(defaultPrompt)));
+  const [chairmanNote, setChairmanNote] = useState('');
   const [stage, setStage] = useState('ready');
   const [approved, setApproved] = useState(false);
   const [execStep, setExecStep] = useState(0);
@@ -141,7 +164,10 @@ function App() {
     setExecStep(0);
     clearTimers();
     window.setTimeout(() => {
-      setSession(generateCouncil(topic));
+      const nextSession = generateCouncil(topic);
+      setSession(nextSession);
+      setRounds(buildInitialRounds(nextSession));
+      setChairmanNote('');
       setStage('done');
       document.getElementById('results')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 500);
@@ -157,6 +183,22 @@ function App() {
       const step = i;
       timers.current.push(window.setTimeout(() => setExecStep(step), (i - 1) * 900));
     }
+  }
+
+  function addRound() {
+    if (approved) return;
+    const nextN = rounds.length + 1;
+    setRounds(prev => [...prev, {
+      n: nextN,
+      title: `Round ${nextN} · chairman follow-up and revised positions`,
+      note: chairmanNote.trim()
+        ? 'The chairman has spoken. Each agent must directly respond, agree/disagree, and update its position.'
+        : 'Open another round. Each agent must challenge assumptions and sharpen its position.',
+      chairmanNote: chairmanNote.trim(),
+      entries: generateAdditionalRound(topic, nextN, chairmanNote),
+    }]);
+    setChairmanNote('');
+    window.setTimeout(() => document.getElementById(`round-${nextN}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50);
   }
 
   useEffect(() => clearTimers, []);
@@ -196,29 +238,40 @@ function App() {
       </div>
     </section>
 
-    <section className="panel" id="results">
+    <section className="panel chairmanPanel" id="results">
       <div className="panelHead">
-        <h2>Round 1 · independent perspectives</h2>
-        <p>Each agent analyzes the same question from a different organizational seat.</p>
+        <h2>Chairman intervention / open another round</h2>
+        <p>This mirrors the internal workbench: the chairman can speak after any round, then open the next round for every agent to respond.</p>
       </div>
-      <div className="cards cardsWide">
-        {council.map(a => <article className="card" key={a.id}>
-          <header><span>{a.icon}</span><div><h3>{a.name}</h3><small>{a.title}</small></div></header>
-          <p className="frame">{a.frame}</p>
-          <p>{session.round1[a.id]}</p>
-        </article>)}
+      <textarea
+        className="chairmanInput"
+        value={chairmanNote}
+        onChange={e => setChairmanNote(e.target.value)}
+        disabled={approved}
+        placeholder="Chairman's comment, question, or correction for the next round…"
+      />
+      <div className="actions">
+        <button onClick={addRound} disabled={approved}>🔁 Add chairman comment & open next round</button>
+        <span>{approved ? 'The meeting is approved, so new discussion rounds are locked.' : `${rounds.length} rounds currently in the meeting record.`}</span>
       </div>
     </section>
 
-    <section className="panel">
+    {rounds.map(round => <section className="panel" id={`round-${round.n}`} key={round.n}>
       <div className="panelHead">
-        <h2>Round 2 · cross-review and disagreement</h2>
-        <p>The council must name agreement, disagreement, and a correction.</p>
+        <h2>{round.title}</h2>
+        <p>{round.note}</p>
       </div>
-      <div className="debateList">
-        {council.map(a => <div className="debate" key={a.id}><b>{a.icon} {a.name}</b><p>{session.debate[a.id]}</p></div>)}
+      {round.chairmanNote && <div className="chairmanNote"><b>👑 Chairman says:</b><span>{round.chairmanNote}</span></div>}
+      <div className={round.n === 1 ? 'cards cardsWide' : 'debateList'}>
+        {council.map(a => round.n === 1
+          ? <article className="card" key={a.id}>
+              <header><span>{a.icon}</span><div><h3>{a.name}</h3><small>{a.title}</small></div></header>
+              <p className="frame">{a.frame}</p>
+              <p>{round.entries[a.id]}</p>
+            </article>
+          : <div className="debate" key={a.id}><b>{a.icon} {a.name}</b><p>{round.entries[a.id]}</p></div>)}
       </div>
-    </section>
+    </section>)}
 
     <section className="panel decision">
       <div className="panelHead">
@@ -267,7 +320,7 @@ function App() {
       </div>
       <div className="record">
         <div><b>Question</b><span>{topic.slice(0, 160)}{topic.length > 160 ? '…' : ''}</span></div>
-        <div><b>Rounds</b><span>Round 1 independent perspectives · Round 2 cross-review and dissent</span></div>
+        <div><b>Rounds</b><span>{rounds.map(r => `Round ${r.n}`).join(' · ')} · chairman can reopen discussion before approval</span></div>
         <div><b>Chair decision</b><span>{session.decision.slice(0, 150)}…</span></div>
         <div><b>Approval</b><span>{approved ? 'Chairman seal applied · execution dispatched' : 'Not yet approved · execution blocked'}</span></div>
         <div><b>Dispatched tasks</b><span>{session.tasks.length} tasks with owners and acceptance criteria</span></div>
