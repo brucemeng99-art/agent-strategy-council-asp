@@ -3,5 +3,5 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
-  base: '/agent-strategy-council-asp/',
+  base: process.env.VITE_BASE_PATH || '/agent-strategy-council-asp/',
 });
