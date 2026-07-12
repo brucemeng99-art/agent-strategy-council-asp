@@ -80,6 +80,10 @@ const executionCorps = [
 function pickTopicSignals(text) {
   const lower = text.toLowerCase();
   return {
+    raw: text.trim(),
+    brief: text.trim().replace(/\s+/g, ' ').slice(0, 220),
+    okx: lower.includes('okx') || lower.includes('agent id') || lower.includes('5155') || lower.includes('#okxai'),
+    manufacturing: lower.includes('manufactur') || lower.includes('catalytic') || lower.includes('三元催化') || lower.includes('出口') || lower.includes('north america') || lower.includes('middle east'),
     market: lower.includes('north america') || lower.includes('market') ? 'market entry' : 'growth bet',
     speed: /90|30|60|days|weeks|deadline/.test(lower) ? 'time-boxed launch' : 'phased validation',
     product: lower.includes('product') || lower.includes('line') ? 'new product line' : 'new initiative',
@@ -111,34 +115,42 @@ function generateAdditionalRound(topic, roundNo, chairmanNote) {
 
 function generateCouncil(topic) {
   const s = pickTopicSignals(topic);
+  const scenario = s.okx
+    ? 'OKX.AI Genesis Hackathon final-submission sprint'
+    : s.manufacturing
+      ? 'manufacturing export business decision'
+      : `${s.speed} ${s.product}`;
+  const xPost = `Introducing AI Command Council — an approval-gated multi-agent boardroom for real manufacturing operators. It turns one business question into independent agent perspectives, chair synthesis, approved tasks, and organizational memory. Agent ID: 5155 https://agentstrategycouncil.com/ #OKXAI`;
   const round1 = {
-    chair: `Meeting rule: separate strategic decision from execution. The council should first decide whether this ${s.product} deserves a gated public validation, then only dispatch work after board approval. I will require clear disagreement before final synthesis.`,
-    strategy: `Recommendation: proceed only as a ${s.speed}, not as a full-scale rollout. The strongest angle is a focused wedge for one buyer segment, then expansion through proof. Validate buyer urgency, channel access, and one non-obvious reason to believe now is the right time.`,
-    product: `Build the first version around one painful workflow, not a broad platform. The MVP should include a clear promise, a narrow feature set, and a demo that a non-technical buyer understands in under two minutes.`,
-    finance: `The decision should be staged. Cap the first validation budget and price the pilot so each session or engagement covers variable AI and support cost. If buyers will not pay for a pilot, treat that as weak demand evidence.`,
-    risk: `Main red flags: overclaiming AI capability, unclear data handling, support burden, and regulatory or platform-review delays. The launch must expose no private data, no hidden model keys, and no unmanaged automation without approval.`,
-    memory: `Relevant organizational memory: decisions like this fail when discussion ends at a document. The durable pattern is: decision standard → owner → acceptance criteria → review cadence → reusable SOP.`,
-    sources: `Evidence requirement: separate assumptions from sources. Before public claims, attach uploaded notes, customer transcripts, market references, or test results. Unsupported claims should remain hypotheses, not launch copy.`,
+    chair: `Priority: HIGH. This is a ${scenario}, so the council must separate public demo proof from private execution. The decision gate is: can a reviewer see the workflow clearly in one session — prompt → independent perspectives → chair decision → approved task list → memory record?`,
+    strategy: `Recommendation: proceed today as a submission sprint, not a broad platform promise. Position AI Command Council as an enterprise coordination layer for operators who already use multiple AI tools but lack governance, role division, and memory. The wedge is manufacturing decision support, because it shows real operational complexity without exposing private data.`,
+    product: `The demo must answer the pasted prompt visibly. Minimum product promise: paste a business decision, click Run Strategy Council, receive role-based perspectives, a chair decision, and executable tasks. For this test, the output should explicitly mention AI Command Council, Agent ID: 5155, the public URL, and #OKXAI so the result is screenshot-ready.`,
+    finance: `Commercial view: keep the first offer simple — pay-per-council-session or BYOK enterprise workspace. Do not imply unlimited autonomous execution. Show that the provider can control model cost while customers pay for decision outcomes, auditability, and task routing.`,
+    risk: `Main risk: judges think this is only a static webpage or that it overclaims real autonomous execution. Mitigation: label the public site as a sanitized MVP, show approval-gated execution, and make the result visibly change when the user runs a council session. No browser API keys, no private bridge, no company data.`,
+    memory: `Organizational memory rule: this session should become a reusable record — input question, independent perspectives, disagreements, final decision, task owners, and posting copy. That is the difference between a chat answer and an AI organization process.`,
+    sources: `Source discipline: public claims should be limited to what the demo proves. Proven: structured multi-role council flow, approval gate, task plan, memory-style record. Assumption to validate later: real model-backed sessions and enterprise workspace economics.`,
   };
   const debate = {
-    chair: `I accept Strategy's gated-launch view and Risk's isolation requirement. I reject any plan that skips board approval before execution. The meeting must end with a task list, but dispatch waits for the approval seal.`,
-    strategy: `I agree with Finance that the first budget must be capped. I disagree with Product if the MVP becomes too polished before demand is proven. Public credibility first, narrow paid pilots second.`,
-    product: `I agree with Risk that trust is part of the product. I disagree with waiting too long for perfect positioning; a working demo can generate positioning data faster than internal debate.`,
-    finance: `I agree with Execution discipline and disagree with pricing below variable cost for attention. Even a hackathon demo should show a credible pay-per-use model.`,
-    risk: `I agree with Product that a demo is necessary. I disagree with connecting the public demo to private execution systems. The public version must be isolated, sanitized, and approval-gated.`,
-    memory: `I agree with the Chair's separation of decision and execution. I disagree with losing the meeting archive; every round, dissent, decision, approval, and dispatched task should remain traceable.`,
-    sources: `I agree with Strategy on market entry but disagree with treating intuition as evidence. Final copy should distinguish observed facts, source-backed claims, and assumptions to test.`,
+    chair: `I accept Risk's warning: the public demo must not pretend to run private agents. I also accept Product's correction: if the button does not visibly produce a result, the demo fails. Final decision must prioritize visible reviewer confidence.`,
+    strategy: `I agree with Product that the demo must be obvious within seconds. I disagree with making the X post too generic. The post should name the manufacturing operator use case and the multi-agent governance problem.`,
+    product: `I agree with Risk on safety boundaries, but disagree with hiding the experience behind disclaimers. The interaction should feel alive: clear running state, generated perspectives, decision, task list, and approval dispatch lifecycle.`,
+    finance: `I agree with Strategy that this should be positioned as outcome infrastructure, not another chatbot. I disagree with selling it as full automation today; the safer paid wedge is approval-gated council sessions.`,
+    risk: `I agree with Product that visible output is mandatory. I disagree with any copy implying real private execution from the public site. The safe phrase is “sanitized MVP demonstrating the workflow.”`,
+    memory: `I agree with the Chair that every run must become a record. I disagree with treating the X post as a side task; it is part of the decision record and should be generated by the council.`,
+    sources: `I agree with Risk: claims must match what the public site proves. The screenshot should show the workflow and the final X/Twitter draft, not private backend claims.`,
   };
-  const decision = `Conditional GO. Launch a public, sanitized MVP that demonstrates the council workflow: board question → multi-role debate → source and memory review → chair synthesis → board approval seal → executable task dispatch. Do not claim autonomous execution in the first public version; show approval-gated execution planning first.`;
+  const decision = s.okx
+    ? `GO for OKX.AI submission. Use this as the final public demo: AI Command Council coordinates role-based agents for a manufacturing operator, produces a clear task plan, keeps execution approval-gated, and outputs the X/Twitter launch copy. Do not claim private autonomous execution from the public site; claim a sanitized MVP demonstrating the enterprise AI command workflow.\n\nX/Twitter draft:\n${xPost}`
+    : `Conditional GO. Launch a public, sanitized MVP that demonstrates the council workflow: board question → multi-role debate → source and memory review → chair synthesis → board approval seal → executable task dispatch. Do not claim autonomous execution in the first public version; show approval-gated execution planning first.`;
   const tasks = [
-    { owner: 'Product', target: 'Claude Code', priority: 'High', task: 'Define one public demo scenario, council roles, and meeting language.', acceptance: 'A visitor understands the council workflow in 30 seconds.' },
-    { owner: 'Engineering', target: 'Codex', priority: 'High', task: 'Deploy a sanitized demo with no private bridge, local paths, or secrets.', acceptance: 'Public URL opens and secret/internal scan is clean.' },
-    { owner: 'Risk', target: 'Claude Code', priority: 'High', task: 'Review copy, data flow, claims, and approval boundaries.', acceptance: 'No private context, no hidden execution, no overclaiming.' },
+    { owner: 'Product', target: 'Claude Code', priority: 'High', task: 'Make the public demo visibly generate OKX-ready council output from the pasted prompt.', acceptance: 'A visitor sees independent perspectives, a chair decision, and X/Twitter draft after clicking Run.' },
+    { owner: 'Engineering', target: 'Codex', priority: 'High', task: 'Deploy the sanitized static demo with no private bridge, local paths, API keys, or secrets.', acceptance: 'https://agentstrategycouncil.com/ opens, button works, and build passes.' },
+    { owner: 'Risk', target: 'Claude Code', priority: 'High', task: 'Review copy, public claims, data flow, and approval boundaries.', acceptance: 'No private context, no hidden execution, no overclaiming real backend automation.' },
     { owner: 'Source Review', target: 'Notebook-style reviewer', priority: 'Normal', task: 'Attach or summarize source evidence for claims.', acceptance: 'Claims are marked as fact, source-backed claim, or assumption.' },
     { owner: 'Org Memory', target: 'Obsidian-style memory', priority: 'Normal', task: 'Convert the meeting result into reusable SOP and decision record.', acceptance: 'Decision, dissent, approval, and task owners are archived.' },
-    { owner: 'Growth', target: 'Gemini / media helper', priority: 'Normal', task: 'Record a 60-90 second demo and prepare launch copy.', acceptance: 'Video shows prompt → debate → chair decision → approval → tasks.' },
+    { owner: 'Growth', target: 'Gemini / media helper', priority: 'Normal', task: s.okx ? `Publish the X/Twitter post: “${xPost}”` : 'Record a 60-90 second demo and prepare launch copy.', acceptance: 'Post or video shows prompt → debate → chair decision → approval → tasks.' },
   ];
-  return { round1, debate, decision, tasks };
+  return { round1, debate, decision, tasks, scenario, xPost, brief: s.brief };
 }
 
 function App() {
@@ -162,6 +174,7 @@ function App() {
     setStage('running');
     setApproved(false);
     setExecStep(0);
+    setRounds([]);
     clearTimers();
     window.setTimeout(() => {
       const nextSession = generateCouncil(topic);
@@ -233,10 +246,23 @@ function App() {
       </div>
       <textarea value={topic} onChange={e => setTopic(e.target.value)} />
       <div className="actions">
-        <button onClick={runCouncil}>{stage === 'running' ? 'Council is thinking…' : 'Run strategy council'}</button>
+        <button onClick={runCouncil} disabled={stage === 'running'}>{stage === 'running' ? 'Council is thinking…' : 'Run strategy council'}</button>
         <span>{costNote.mode}: suggested demo price {costNote.price}. {costNote.boundary}</span>
       </div>
     </section>
+
+    {stage === 'running' && <section className="panel runningPanel" id="results">
+      <div className="panelHead">
+        <h2>Independent perspectives are being generated…</h2>
+        <p>The council is reading your prompt and preparing role-based output. This public MVP uses a safe browser-side simulation, so no private model key or company data is exposed.</p>
+      </div>
+      <div className="loadingSteps">
+        <span>🧭 Strategy Agent analyzing priority</span>
+        <span>🛠️ Product Agent shaping demo output</span>
+        <span>🛡️ Risk Agent checking public claims</span>
+        <span>👨‍💼 Chair Agent preparing decision</span>
+      </div>
+    </section>}
 
     <section className="panel chairmanPanel" id="results">
       <div className="panelHead">
